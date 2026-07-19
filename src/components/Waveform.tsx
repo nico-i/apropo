@@ -2,15 +2,21 @@ import { useEffect, useRef } from 'react'
 
 export default function Waveform({
   playing,
+  currentTime,
   getFrequencyData,
+  getFrequencyDataAt,
   binCount,
 }: {
   playing: boolean
+  currentTime: number
   getFrequencyData: (target: Uint8Array<ArrayBuffer>) => boolean
+  getFrequencyDataAt: (time: number, target: Uint8Array<ArrayBuffer>) => boolean
   binCount: number
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const frameRef = useRef<number>(0)
+  const timeRef = useRef(currentTime)
+  timeRef.current = currentTime
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -41,7 +47,9 @@ export default function Waveform({
       const height = rect.height
       ctx!.clearRect(0, 0, width, height)
 
-      const hasData = getFrequencyData(data)
+      const hasData = playing
+        ? getFrequencyData(data)
+        : getFrequencyDataAt(timeRef.current, data)
       const mid = height / 2
 
       const bars = 48
@@ -76,7 +84,7 @@ export default function Waveform({
     return () => {
       cancelAnimationFrame(frameRef.current)
     }
-  }, [getFrequencyData, binCount, playing])
+  }, [getFrequencyData, getFrequencyDataAt, binCount, playing])
 
   return <canvas ref={canvasRef} className="waveform" />
 }

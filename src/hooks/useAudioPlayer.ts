@@ -15,6 +15,7 @@ export function useAudioPlayer(id: string) {
   const contextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const frameRef = useRef<number | null>(null)
+  const bufferRef = useRef<AudioBuffer | null>(null)
 
   const [state, setState] = useState<PlayerState>({
     ready: false,
@@ -83,6 +84,8 @@ export function useAudioPlayer(id: string) {
           }))
 
         setState((s) => ({ ...s, ready: true }))
+
+        void decodeBuffer(blob)
       } catch (err) {
         if (!cancelled) {
           setState((s) => ({ ...s, error: err instanceof Error ? err.message : 'Playback failed.' }))
@@ -107,8 +110,28 @@ export function useAudioPlayer(id: string) {
       void contextRef.current?.close()
       contextRef.current = null
       analyserRef.current = null
+      bufferRef.current = null
     }
   }, [id])
+
+  async function decodeBuffer(blob: Blob) {
+    try {
+      const AudioContextCtor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      if (!AudioContextCtor) return
+      const arrayBuffer = await blob.arrayBuffer()
+      const decodeContext = new AudioContextCtor()
+      try {
+        const decoded = await decodeContext.decodeAudioData(arrayBuffer)
+        bufferRef.current = decoded
+      } finally {
+        void decodeContext.close()
+      }
+    } catch {
+      // Scrub-time visualization is optional; ignore decode failures.
+    }
+  }
 
   function ensureAnalyser() {
     const audio = audioRef.current
@@ -164,6 +187,44 @@ export function useAudioPlayer(id: string) {
     return true
   }, [])
 
+  const getFrequencyDataAt = useCallback(
+    (time: number, target: Uint8Array<ArrayBuffer>) => {
+      const buffer = bufferRef.current
+      if (!buffer) return false
+
+      const bins = target.length
+      const fftSize = bins * 2
+      const channel = buffer.getChannelData(0)
+      const center = Math.floor(time * buffer.sampleRate)
+      const start = center - fftSize / 2
+
+      const windowed = new Float32Array(fftSize)
+      for (let n = 0; n < fftSize; n++) {
+        const idx = start + n
+        const sample = idx >= 0 && idx < channel.length ? channel[idx] : 0
+        const hann = 0.5 - 0.5 * Math.cos((2 * Math.PI * n) / (fftSize - 1))
+        windowed[n] = sample * hann
+      }
+
+      for (let k = 0; k < bins; k++) {
+        let re = 0
+        let im = 0
+        const w = (-2 * Math.PI * k) / fftSize
+        for (let n = 0; n < fftSize; n++) {
+          const angle = w * n
+          re += windowed[n] * Math.cos(angle)
+          im += windowed[n] * Math.sin(angle)
+        }
+        const magnitude = Math.sqrt(re * re + im * im) / bins
+        const db = 20 * Math.log10(magnitude + 1e-9)
+        const normalized = (db + 90) / 90
+        target[k] = Math.max(0, Math.min(255, Math.round(normalized * 255)))
+      }
+      return true
+    },
+    [],
+  )
+
   const frequencyBinCount = () => analyserRef.current?.frequencyBinCount ?? 128
 
   return {
@@ -171,6 +232,7 @@ export function useAudioPlayer(id: string) {
     toggle,
     seek,
     getFrequencyData,
+    getFrequencyDataAt,
     frequencyBinCount,
   }
 }

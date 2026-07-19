@@ -90,7 +90,9 @@ export default function PlayerPage() {
       <div className="player-visual">
         <Waveform
           playing={player.playing}
+          currentTime={player.currentTime}
           getFrequencyData={player.getFrequencyData}
+          getFrequencyDataAt={player.getFrequencyDataAt}
           binCount={binCount}
         />
       </div>
