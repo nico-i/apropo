@@ -27,10 +27,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # GITHUB_PAGES switches vite base to the project-pages subpath
       - run: bun run build
-        env:
-          GITHUB_PAGES: 'true'
 
       - uses: actions/upload-pages-artifact@v3
         with:
