@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: process.env.GITHUB_PAGES ? '/apropo/' : '/',
   plugins: [react(), VitePWA({
     registerType: 'autoUpdate',
     injectRegister: false,
@@ -14,10 +15,10 @@ export default defineConfig({
     },
 
     manifest: {
-      name: 'apropo',
-      short_name: 'apropo',
+      name: 'Apropos',
+      short_name: 'Apropos',
       description: 'Voice recorder and memo taking app.',
-      theme_color: '#9500ff',
+      theme_color: '#e5322d',
     },
 
     workbox: {

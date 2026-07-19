@@ -1,37 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import appLogo from '/favicon.svg'
-import PWABadge from './PWABadge.tsx'
+import { Link, Outlet, Route, HashRouter, Routes, useLocation } from 'react-router-dom'
+import { useRecordings } from './hooks/useRecordings'
+import Icon from './components/Icon'
+import HomePage from './routes/HomePage'
+import PlayerPage from './routes/PlayerPage'
+import SettingsPage from './routes/SettingsPage'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+export type RecordingsContext = ReturnType<typeof useRecordings>
+
+function Layout() {
+  const recordings = useRecordings()
+  const location = useLocation()
+  const onSettings = location.pathname === '/settings'
+  const onPlayer = location.pathname.startsWith('/recordings/')
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={appLogo} className="logo" alt="apropo logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>apropo</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-      <PWABadge />
-    </>
+    <div className="app">
+      {!onPlayer && (
+        <header className="app-header">
+          <h1>{onSettings ? 'Settings' : 'Recordings'}</h1>
+          <Link
+            to={onSettings ? '/' : '/settings'}
+            className="icon-button"
+            aria-label={onSettings ? 'Back to recordings' : 'Settings'}
+          >
+            <span style={{ opacity: onSettings ? 1 : 0.6, display: 'flex' }}>
+              <Icon name={onSettings ? 'close' : 'settings'} />
+            </span>
+          </Link>
+        </header>
+      )}
+      <main>
+        <Outlet context={recordings} />
+      </main>
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="recordings/:id" element={<PlayerPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+    </HashRouter>
+  )
+}
