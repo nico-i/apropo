@@ -99,3 +99,7 @@ export function resolveName(input: string, timestamp: number): string {
   const trimmed = input.trim()
   return trimmed || defaultName(timestamp)
 }
+
+export function nameFromFileName(fileName: string): string {
+  return fileName.replace(/\.[^./\\]+$/, '').trim()
+}

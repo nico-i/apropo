@@ -3,6 +3,8 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   createId,
   fromDateTimeLocalValue,
+  nameFromFileName,
+  resolveName,
   toDateTimeLocalValue,
   type Recording,
 } from '../recording'
@@ -14,8 +16,14 @@ export default function SettingsPage() {
   const { add, recordings } = useOutletContext<RecordingsContext>()
   const navigate = useNavigate()
   const [file, setFile] = useState<File | null>(null)
+  const [name, setName] = useState('')
   const [dateTime, setDateTime] = useState(() => toDateTimeLocalValue(Date.now()))
   const [saving, setSaving] = useState(false)
+
+  function pickFile(selected: File | null) {
+    setFile(selected)
+    if (selected) setName(nameFromFileName(selected.name))
+  }
 
   async function save() {
     if (!file) return
@@ -23,7 +31,7 @@ export default function SettingsPage() {
     const createdAt = fromDateTimeLocalValue(dateTime)
     const recording: Recording = {
       id: createId(),
-      name: file.name,
+      name: resolveName(name, createdAt),
       createdAt,
       mimeType: file.type || 'audio/mpeg',
     }
@@ -40,7 +48,16 @@ export default function SettingsPage() {
         <input
           type="file"
           accept="audio/*"
-          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
+        />
+      </label>
+      <label className="field">
+        <span>Name</span>
+        <input
+          type="text"
+          value={name}
+          placeholder="Recording name"
+          onChange={(event) => setName(event.target.value)}
         />
       </label>
       <label className="field">
